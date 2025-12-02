@@ -60,11 +60,39 @@ services:
     environment:
       DATABASE_URL: ${ORDER_DATABASE_URL}
       RABBITMQ_URL: ${ORDER_RABBITMQ_URL}
+      PAYMENT_SERVICE_URL: ${PAYMENT_SERVICE_URL:-http://payment_service:8000}
+      NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL:-http://notification_service:8000}
     depends_on:
       - db
       - rabbitmq
     ports:
       - "8003:8000"
+
+  # Микросервис платежей (пример хореографии - подписчик на события + Transaction Inbox)
+  payment_service:
+    build:
+      context: .
+      dockerfile: ./services/payment_service/Dockerfile
+    environment:
+      RABBITMQ_URL: ${ORDER_RABBITMQ_URL}
+      DATABASE_URL: ${ORDER_DATABASE_URL}
+    depends_on:
+      - db
+      - rabbitmq
+    ports:
+      - "8004:8000"
+
+  # Микросервис уведомлений (пример хореографии - подписчик на события)
+  notification_service:
+    build:
+      context: .
+      dockerfile: ./services/notification_service/Dockerfile
+    environment:
+      RABBITMQ_URL: ${ORDER_RABBITMQ_URL}
+    depends_on:
+      - rabbitmq
+    ports:
+      - "8005:8000"
 
   telegram_bot:
     build:

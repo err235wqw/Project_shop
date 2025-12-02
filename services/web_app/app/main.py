@@ -140,6 +140,36 @@ async def logout(request: Request):
     return RedirectResponse(request.url_for("home"), status_code=status.HTTP_303_SEE_OTHER)
 
 
+@app.get("/orders")
+async def orders(request: Request):
+    user = _current_user(request)
+    if not user:
+        _set_flash(request, "Сначала выполните вход")
+        return RedirectResponse(request.url_for("login_form"), status_code=status.HTTP_303_SEE_OTHER)
+
+    try:
+        client = _get_client()
+        # Получаем все заказы (в реальном проекте фильтровали бы по email)
+        resp = await client.get(f"{ORDER_SERVICE_URL}/orders")
+        resp.raise_for_status()
+        all_orders = resp.json()
+        # Фильтруем заказы текущего пользователя
+        user_orders = [o for o in all_orders if o.get("customer_email") == user["email"]]
+    except Exception as exc:  # noqa: BLE001
+        _set_flash(request, f"Не удалось загрузить заказы: {exc}")
+        user_orders = []
+
+    return templates.TemplateResponse(
+        "orders.html",
+        {
+            "request": request,
+            "user": user,
+            "flash": _pop_flash(request),
+            "orders": user_orders,
+        },
+    )
+
+
 async def _fetch_catalog() -> List[Dict]:
     client = _get_client()
     resp = await client.get(f"{CATALOG_SERVICE_URL}/products")

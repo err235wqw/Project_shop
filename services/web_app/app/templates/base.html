@@ -24,6 +24,7 @@
             <a href="/">Главная</a>
             {% if user %}
                 <a href="/catalog">Каталог</a>
+                <a href="/orders">Мои заказы</a>
                 <form action="/logout" method="post" style="display:inline;">
                     <button type="submit">Выйти ({{ user.email }})</button>
                 </form>
