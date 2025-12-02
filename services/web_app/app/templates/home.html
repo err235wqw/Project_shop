@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Магазин</h1>
+<p>Это веб-интерфейс, который работает поверх микросервисов auth/catalog/order.</p>
+{% if user %}
+    <p>Вы вошли как <strong>{{ user.email }}</strong>.</p>
+    <p><a href="/catalog">Перейти в каталог товаров →</a></p>
+{% else %}
+    <p>Чтобы начать, зарегистрируйтесь или выполните вход.</p>
+    <p>
+        <a href="/register">Регистрация</a> |
+        <a href="/login">Вход</a>
+    </p>
+{% endif %}
+{% endblock %}
+
+

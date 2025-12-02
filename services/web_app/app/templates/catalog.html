@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Каталог товаров</h2>
+{% if products %}
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Название</th>
+            <th>Цена</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for product in products %}
+        <tr>
+            <td>{{ product.id }}</td>
+            <td>{{ product.name }}</td>
+            <td>{{ product.price }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<h3>Оформить заказ</h3>
+<p>Введите товары в формате <code>product_id:qty</code> через запятую.</p>
+<form method="post" action="/order">
+    <label>Товары
+        <input type="text" name="items" placeholder="1:2, 2:1" required>
+    </label>
+    <button type="submit">Отправить заказ</button>
+</form>
+{% else %}
+    <p>Каталог пуст.</p>
+{% endif %}
+{% endblock %}
+
+

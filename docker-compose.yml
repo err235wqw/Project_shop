@@ -1,0 +1,102 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  # Микросервис авторизации
+  auth_service:
+    build:
+      context: .
+      dockerfile: ./services/auth_service/Dockerfile
+    environment:
+      JWT_SECRET: ${AUTH_JWT_SECRET}
+      JWT_ALGORITHM: ${AUTH_JWT_ALGORITHM}
+      JWT_EXPIRE_MINUTES: ${AUTH_JWT_EXPIRE_MINUTES}
+      AUTH_DATABASE_URL: ${AUTH_DATABASE_URL}
+    depends_on:
+      - db
+    ports:
+      - "8001:8000"
+
+  # Микросервис каталога
+  catalog_service:
+    build:
+      context: .
+      dockerfile: ./services/catalog_service/Dockerfile
+    environment:
+      REDIS_URL: ${CATALOG_REDIS_URL}
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "8002:8000"
+
+  # Микросервис заказов (пример distributed transaction + outbox)
+  order_service:
+    build:
+      context: .
+      dockerfile: ./services/order_service/Dockerfile
+    environment:
+      DATABASE_URL: ${ORDER_DATABASE_URL}
+      RABBITMQ_URL: ${ORDER_RABBITMQ_URL}
+    depends_on:
+      - db
+      - rabbitmq
+    ports:
+      - "8003:8000"
+
+  telegram_bot:
+    build:
+      context: .
+      dockerfile: ./services/telegram_bot/Dockerfile
+    environment:
+      BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      AUTH_SERVICE_URL: ${TELEGRAM_AUTH_URL:-http://auth_service:8000}
+      CATALOG_SERVICE_URL: ${TELEGRAM_CATALOG_URL:-http://catalog_service:8000}
+      ORDER_SERVICE_URL: ${TELEGRAM_ORDER_URL:-http://order_service:8000}
+    depends_on:
+      - auth_service
+      - catalog_service
+      - order_service
+
+  web_app:
+    build:
+      context: .
+      dockerfile: ./services/web_app/Dockerfile
+    environment:
+      WEB_SESSION_SECRET: ${WEB_SESSION_SECRET}
+      WEB_AUTH_URL: ${WEB_AUTH_URL:-http://auth_service:8000}
+      WEB_CATALOG_URL: ${WEB_CATALOG_URL:-http://catalog_service:8000}
+      WEB_ORDER_URL: ${WEB_ORDER_URL:-http://order_service:8000}
+    depends_on:
+      - auth_service
+      - catalog_service
+      - order_service
+    ports:
+      - "8080:8000"
+
+volumes:
+  db_data:
+
+
